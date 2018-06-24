@@ -10,6 +10,7 @@ import retrofit2.http.Query
 import rx.Observable
 
 interface AlgoliaApiService {
+
     @GET("api/v1/users/pg")
     fun getUser(): Observable<UserResponse>
 
