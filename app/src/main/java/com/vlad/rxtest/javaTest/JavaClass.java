@@ -4,12 +4,16 @@ import android.util.Log;
 
 import com.vlad.rxtest.entity.response.Hit;
 import com.vlad.rxtest.entity.response.SearchByDate;
+import com.vlad.rxtest.entity.response.UserResponse;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import rx.Observable;
 import rx.Single;
 import rx.Subscriber;
+import rx.functions.Action1;
+import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 
@@ -24,19 +28,9 @@ public class JavaClass {
             return list;
         })
                 .subscribeOn(Schedulers.io())
-                .subscribe(new Subscriber() {
+                .subscribe(new Action1() {
                     @Override
-                    public void onCompleted() {
-                        Log.i("fuck", "onCompleted");
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.i("fuck", "onError " + e.toString());
-                    }
-
-                    @Override
-                    public void onNext(Object o) {
+                    public void call(Object o) {
                         List<Hit> list = null;
                         if (o instanceof List) {
                             list = (List) o;
@@ -98,50 +92,63 @@ public class JavaClass {
 //        ;
     }
 
-//    public void initTask2() {
-//        Observable.just(getPage(0))
-//                .subscribeOn(Schedulers.io())
-//                .flatMap(new Func1<Single<SearchByDate>, Observable<SearchByDate>>() {
-//                    @Override
-//                    public Observable<SearchByDate> call(Single<SearchByDate> single) {
-//                        return single.toObservable();
-//                    }
-//                })
-//                .flatMap(new Func1<SearchByDate, Observable<List<Hit>>>() {
-//                    @Override
-//                    public Observable<List<Hit>> call(SearchByDate searchByDate) {
-//                        return Observable.just(searchByDate.component1());
-//                    }
-//                })
-//                .flatMap(new Func1<List<Hit>, Observable<?>>() {
-//                    @Override
-//                    public Observable<?> call(List<Hit> hits) {
-//                        return Observable.from(hits);
-//                    }
-//                })
-//                .flatMap(new Func1<Object, Observable<?>>() {
-//                    @Override
-//                    public Observable<?> call(Object o) {
-//                        Hit hit = null;
-//                        if (o instanceof Hit) {
-//                            hit = (Hit) o;
-//                        }
-//                        if (hit != null) {
-//                            return Observable.just(hit.getTitle());
-//                        }
-//                        return null;
-//                    }
-//                })
-//                .subscribe(new Action1<Object>() {
-//                    @Override
-//                    public void call(Object o) {
-//
-//                        String title = (String) o;
-//                        Log.i("fuck", "title: " + title);
-//                    }
-//                })
-//        ;
-//    }
+    public void initTask2() {
+        Observable.just(getPage(0))
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<Single<SearchByDate>, Observable<?>>() {
+                    @Override
+                    public Observable<?> call(Single<SearchByDate> searchByDateSingle) {
+                        return searchByDateSingle.toObservable();
+                    }
+                })
+                .flatMap(new Func1<Object, Observable<?>>() {
+                    @Override
+                    public Observable<?> call(Object searchByDate) {
+                        return Observable.from(((SearchByDate) searchByDate).getHits());
+                    }
+                })
+                .flatMap(new Func1<Object, Observable<?>>() {
+                    @Override
+                    public Observable<?> call(Object o) {
+                        return getUser(((Hit) o).getAuthor()).toObservable();
+                    }
+                })
+                .toList()
+                .map(new Func1<List<Object>, Object>() {
+                    @Override
+                    public Object call(List<Object> objects) {
+                        List<UserResponse> responsesList = new ArrayList<>();
+                        for (Object o : objects) {
+                            UserResponse userResponse = (UserResponse) o;
+                            if (userResponse.getKarma() > 3000) {
+                                responsesList.add(userResponse);
+                            }
+
+                        }
+                        return responsesList;
+                    }
+                })
+                .subscribe(new Subscriber<Object>() {
+                    @Override
+                    public void onCompleted() {
+                        Log.i("fuck", "completed");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.i("fuck", "error " + e.toString());
+                    }
+
+                    @Override
+                    public void onNext(Object o) {
+                        List<UserResponse> list = (List<UserResponse>) o;
+                        for (UserResponse item : list) {
+                            Log.i("fuck", item.getKarma() + "");
+                        }
+                    }
+                })
+        ;
+    }
 
     private List<Integer> makeIntArray() {
         List<Integer> list = new ArrayList<>();
@@ -151,11 +158,11 @@ public class JavaClass {
         return list;
     }
 
-    private Single getPage(int page) {
+    private Single<SearchByDate> getPage(int page) {
         return AlgoliaApiServiceJava.Factory.create().getSearchByDate(page, "story");
     }
 
-    private Single getUser(String user) {
+    private Single<UserResponse> getUser(String user) {
         return AlgoliaApiServiceJava.Factory.create().getUser(user);
     }
 
