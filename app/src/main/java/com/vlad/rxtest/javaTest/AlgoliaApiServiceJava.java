@@ -1,4 +1,4 @@
-package com.vlad.rxtest.retrofit;
+package com.vlad.rxtest.javaTest;
 
 import com.vlad.rxtest.BuildConfig;
 import com.vlad.rxtest.entity.response.SearchByDate;
@@ -14,8 +14,8 @@ import rx.Single;
 
 public interface AlgoliaApiServiceJava {
 
-    @GET("api/v1/api/v1/users/pg")
-    Single<UserResponse> getUsers();
+    @GET("api/v1/api/v1/users/{user}")
+    Single<UserResponse> getUser(@Path("user") String user);
 
     @GET("api/v1/search_by_date?")
     Single<SearchByDate> getSearchByDate(@Query("page") int page, @Query("tags") String tags);

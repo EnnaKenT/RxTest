@@ -10,7 +10,7 @@ class SearchRepository(private val apiService: AlgoliaApiService) {
         return apiService.searchByDate(page, "story")
     }
 
-    fun getUser(): Single<UserResponse> {
-        return apiService.getUser()
+    fun getUser(user: String): Single<UserResponse> {
+        return apiService.getUser(user)
     }
 }

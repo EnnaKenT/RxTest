@@ -13,8 +13,8 @@ import rx.Single
 
 interface AlgoliaApiService {
 
-    @GET("api/v1/users/pg")
-    fun getUser(): Single<UserResponse>
+    @GET("api/v1/users/{user}")
+    fun getUser(@Path("user") user: String): Single<UserResponse>
 
     @GET("api/v1/search_by_date?")
     fun searchByDate(@Query("page") page: Int, @Query("tags") tag: String): Single<SearchByDate>
