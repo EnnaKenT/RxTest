@@ -8,7 +8,15 @@ import com.vlad.rxtest.entity.response.UserResponse;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
+import io.reactivex.Maybe;
+import io.reactivex.MaybeEmitter;
+import io.reactivex.MaybeOnSubscribe;
+import io.reactivex.SingleObserver;
+import io.reactivex.SingleSource;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
 import rx.Observable;
 import rx.Single;
 import rx.Subscriber;
@@ -148,6 +156,21 @@ public class JavaClass {
                     }
                 })
         ;
+    }
+
+    class CustomSingleSource implements SingleSource {
+        @Override
+        public void subscribe(SingleObserver observer) {
+            Log.i("fuck", "fuck");
+        }
+    }
+
+    private Object getSource() {
+        if (new Random().nextBoolean()) {
+            return "Bang!";
+        } else {
+            return new IllegalArgumentException();
+        }
     }
 
     private List<Integer> makeIntArray() {

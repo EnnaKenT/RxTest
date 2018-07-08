@@ -22,8 +22,8 @@ class MainActivity : AppCompatActivity(), MainActivityView {
         presenter.bindView(this)
     }
 
-    override fun onStop() {
-        super.onStop()
+    override fun onDestroy() {
+        super.onDestroy()
         presenter.unbindView()
     }
 
@@ -32,9 +32,13 @@ class MainActivity : AppCompatActivity(), MainActivityView {
 
         if (InternetUtil.isInternetTurnOn(this)) {
             val javaClass = JavaClass()
-            javaClass.initTask2()
-//                    presenter.initTask1()
+//            javaClass.initTask2()
+//            presenter.initTask1()
 //            presenter.initTask2()
+//            presenter.initTask3()
+//            presenter.initTask4()
+//            presenter.initTask5()
+            presenter.initTask6()
         }
     }
 }
