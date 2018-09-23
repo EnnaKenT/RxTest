@@ -7,7 +7,7 @@ data class UserResponse(
         val karma: Int,
         val created_at: String,
         val avg: Double,
-        val delay: Object,
+        val delay: Any,
         val submitted: Int,
         val updated_at: String,
         val submission_count: Int,

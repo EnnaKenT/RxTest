@@ -5,7 +5,8 @@ import io.reactivex.SingleObserver
 import io.reactivex.SingleSource
 
 class CustomSingleSource : SingleSource<Any> {
+
     override fun subscribe(observer: SingleObserver<in Any>) {
-        Log.i("fuck", "Current thread: ${Thread.currentThread()}")
+        Log.i("duck", "Current thread: ${Thread.currentThread()}")
     }
 }

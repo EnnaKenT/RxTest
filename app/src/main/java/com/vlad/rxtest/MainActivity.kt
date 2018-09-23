@@ -2,7 +2,6 @@ package com.vlad.rxtest
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import com.vlad.rxtest.javaTest.JavaClass
 import com.vlad.rxtest.utils.InternetUtil
 
 class MainActivity : AppCompatActivity(), MainActivityView {
@@ -31,14 +30,15 @@ class MainActivity : AppCompatActivity(), MainActivityView {
         super.onResume()
 
         if (InternetUtil.isInternetTurnOn(this)) {
-            val javaClass = JavaClass()
+//            val javaClass = JavaClass()
 //            javaClass.initTask2()
 //            presenter.initTask1()
 //            presenter.initTask2()
 //            presenter.initTask3()
 //            presenter.initTask4()
 //            presenter.initTask5()
-            presenter.initTask6()
+//            presenter.initTask63()
+            presenter.initTask7()
         }
     }
 }

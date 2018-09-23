@@ -2,7 +2,7 @@ package com.vlad.rxtest.retrofit
 
 import com.vlad.rxtest.entity.response.SearchByDate
 import com.vlad.rxtest.entity.response.UserResponse
-import rx.Single
+import io.reactivex.Single
 
 class SearchRepository(private val apiService: AlgoliaApiService) {
 

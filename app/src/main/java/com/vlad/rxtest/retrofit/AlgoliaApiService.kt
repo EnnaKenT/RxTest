@@ -1,15 +1,15 @@
 package com.vlad.rxtest.retrofit
 
+import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import com.vlad.rxtest.BuildConfig
 import com.vlad.rxtest.entity.response.SearchByDate
 import com.vlad.rxtest.entity.response.UserResponse
+import io.reactivex.Single
 import retrofit2.Retrofit
-import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
-import rx.Single
 
 interface AlgoliaApiService {
 
@@ -25,7 +25,7 @@ interface AlgoliaApiService {
     companion object Factory {
         fun create(): AlgoliaApiService {
             val retrofit = Retrofit.Builder()
-                    .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                    .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
                     .baseUrl(BuildConfig.ALGOLIA_API_HOST)
                     .build()

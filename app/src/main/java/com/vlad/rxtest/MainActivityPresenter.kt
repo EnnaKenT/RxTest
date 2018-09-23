@@ -9,7 +9,10 @@ interface MainActivityPresenter {
     fun initTask3()
     fun initTask4()
     fun initTask5()
-    fun initTask6()
+    fun initTask61()
+    fun initTask62()
+    fun initTask63()
+    fun initTask7()
     fun unbindView()
     fun bindView(@NonNull mainActivity: MainActivity)
 }

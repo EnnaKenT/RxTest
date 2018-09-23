@@ -2,18 +2,21 @@ package com.vlad.rxtest
 
 import android.support.annotation.NonNull
 import android.util.Log
+import com.vlad.rxtest.entity.response.Hit
 import com.vlad.rxtest.entity.response.SearchByDate
 import com.vlad.rxtest.entity.response.UserResponse
 import com.vlad.rxtest.retrofit.AlgoliaApiService
 import com.vlad.rxtest.retrofit.SearchRepository
 import io.reactivex.*
+import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
-import rx.Observable
-import rx.Single
-import rx.schedulers.Schedulers
+import io.reactivex.functions.BiFunction
+import io.reactivex.observers.DisposableSingleObserver
+import io.reactivex.schedulers.Schedulers
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresenter {
 
@@ -30,111 +33,67 @@ class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresen
     }
 
     override fun initTask1() {
-        Single.zip(getSearchByDate(1), getSearchByDate(2)) { t1, t2 ->
-            listOf(t1, t2)
-        }.subscribeOn(Schedulers.io())
-                .subscribe { searByDateList ->
-                    for (list in searByDateList) {
-                        for (hit in list.hits) {
-                            Log.i("fuck", hit.title)
+        Single.zip(getSearchByDate(1), getSearchByDate(2), BiFunction<SearchByDate, SearchByDate, List<Hit>> { (hits), (hits2) ->
+            Log.i("duck", "BiFunction")
+            val list = ArrayList<Hit>()
+            list.addAll(hits)
+            list.addAll(hits2)
+            list
+        })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(object : SingleObserver<List<Hit>> {
+                    override fun onSubscribe(d: Disposable) {
+                    }
+
+                    override fun onError(e: Throwable) {
+                    }
+
+                    override fun onSuccess(t: List<Hit>) {
+                        t.forEach {
+                            Log.i("duck", it.title)
                         }
                     }
-                }
-
-//        Observable.from(makeIntArray())
-//                .subscribeOn(Schedulers.io())
-//                .flatMap(object : Func1<Any?, Observable<SearchByDate>> {
-//                    override fun call(t: Any?): Observable<SearchByDate> {
-//                        Log.i("fuck", "page")
-//                        return getSearchByDate(t as Int).toObservable()
-//                    }
-//                })
-//                .flatMap(object : Func1<SearchByDate, Observable<List<Hit>>> {
-//                    override fun call(searchByDate: SearchByDate?): Observable<List<Hit>> {
-//                        return Observable.just(searchByDate?.hits)
-//                    }
-//                })
-//                .flatMap(object : Func1<List<Hit>, Observable<Hit>> {
-//                    override fun call(list: List<Hit>?): Observable<Hit> {
-//                        return Observable.from(list)
-//                    }
-//                })
-//                .flatMap(object : Func1<Hit, Observable<String>> {
-//                    override fun call(hit: Hit): Observable<String> {
-//                        return Observable.just(hit.title)
-//                    }
-//                })
-//                .subscribe(object : Action1<String> {
-//                    override fun call(title: String?) {
-//                        Log.i("fuck", title)
-//                    }
-//                })
+                })
     }
 
     override fun initTask2() {
-        Observable.just(getSearchByDate(0))
+        Observable.just<Single<SearchByDate>>(getSearchByDate(0))
                 .subscribeOn(Schedulers.io())
-                .flatMap { it.toObservable() }
-                .flatMap { Observable.from(it.hits) }
-                .flatMap { getUser(it.author).toObservable() }
+                .flatMap { searchByDateSingle -> searchByDateSingle.toObservable() }
+                .flatMap { (hits) -> Observable.fromIterable(hits) }
+                .flatMap { (_, _, _, s) ->
+                    getUser(s).toObservable()
+                }
                 .toList()
-                .map {
-                    val list = it
-                    for (karmaLess in list) {
-                        if (karmaLess.karma < 3000) {
-                            it.remove(karmaLess)
+                .map { objects ->
+                    val responsesList = ArrayList<UserResponse>()
+                    for (o in objects) {
+                        val userResponse = o as UserResponse
+                        if (userResponse.karma > 3000) {
+                            responsesList.add(userResponse)
+                        }
+
+                    }
+                    responsesList
+                }
+                .subscribe(object : SingleObserver<Any> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("duck", "onSubscribe")
+                    }
+
+                    override fun onSuccess(o: Any) {
+                        val list = o as List<UserResponse>
+                        for ((_, _, _, karma) in list) {
+                            Log.i("duck", karma.toString() + "")
                         }
                     }
-                    return@map it
-                }
-                .subscribe {
-                    for (karmaEnough in it) {
-                        Log.i("fuck", "${karmaEnough.karma}")
+
+                    override fun onError(e: Throwable) {
+                        Log.i("duck", "error " + e.toString())
                     }
-                }
-//        Observable.just(getSearchByDate(0))
-//                .subscribeOn(Schedulers.io())
-//                .flatMap(object : Func1<Single<SearchByDate>, Observable<SearchByDate>> {
-//                    override fun call(single: Single<SearchByDate>): Observable<SearchByDate> {
-//                        return single.toObservable()
-//                    }
-//                })
-//                .flatMap(object : Func1<SearchByDate, Observable<List<Hit>>> {
-//                    override fun call(searchByDate: SearchByDate?): Observable<List<Hit>> {
-//                        return Observable.just(searchByDate?.hits)
-//                    }
-//                })
-//                .flatMap(object : Func1<List<Hit>, Observable<Hit>> {
-//                    override fun call(list: List<Hit>?): Observable<Hit> {
-//                        return Observable.from(list)
-//                    }
-//                })
-//                .flatMap(object : Func1<Hit, Observable<String>> {
-//                    override fun call(hit: Hit): Observable<String> {
-//                        return Observable.just(hit.author)
-//                    }
-//                })
-//                .flatMap(object : Func1<String, Observable<UserResponse>> {
-//                    override fun call(author: String?): Observable<UserResponse> {
-//                        return getUser(author.toString()).toObservable()
-//                    }
-//                })
-//                .flatMap(object : Func1<UserResponse, Observable<Int>> {
-//                    override fun call(response: UserResponse?): Observable<Int> {
-//                        return Observable.just(response?.karma)
-//                    }
-//                })
-//                .filter(object : Func1<Int, Boolean> {
-//                    override fun call(karma: Int?): Boolean? {
-//                        return karma.let { it!! > 3000 }
-//
-//                    }
-//                })
-//                .subscribe(object : Action1<Int> {
-//                    override fun call(karma: Int) {
-//                        Log.i("fuck", karma.toString())
-//                    }
-//                })
+                })
+
     }
 
     override fun initTask3() {
@@ -144,22 +103,23 @@ class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresen
             } else {
                 emitter.onError(IllegalArgumentException("illegal arg"))
             }
-        }).subscribeOn(AndroidSchedulers.mainThread())
+        })
+                .subscribeOn(AndroidSchedulers.mainThread())
                 .subscribe(object : MaybeObserver<Any> {
                     override fun onSubscribe(d: Disposable) {
 
                     }
 
                     override fun onSuccess(o: Any) {
-                        Log.i("fuck", o as String)
+                        Log.i("duck", o as String)
                     }
 
                     override fun onError(e: Throwable) {
-                        Log.i("fuck", e.toString())
+                        Log.i("duck", e.toString())
                     }
 
                     override fun onComplete() {
-
+                        Log.i("duck", "onComplete")
                     }
                 })
     }
@@ -178,15 +138,15 @@ class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresen
                     }
 
                     override fun onSuccess(o: Any) {
-                        Log.i("fuck", o as String)
+                        Log.i("duck", o as String)
                     }
 
                     override fun onError(e: Throwable) {
-                        Log.i("fuck", e.toString())
+                        Log.i("duck", e.toString())
                     }
 
                     override fun onComplete() {
-                        Log.i("fuck", "onComplete")
+                        Log.i("duck", "onComplete")
                     }
                 })
     }
@@ -201,20 +161,74 @@ class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresen
         })
                 .toSingle("You're live")
                 .subscribeOn(AndroidSchedulers.mainThread())
-                .subscribe { word -> Log.i("fuck", word as String?) }
+                .subscribe { word -> Log.i("duck", word as String?) }
     }
 
-    override fun initTask6() {
-        Maybe.create(MaybeOnSubscribe<Any> { emitter ->
-            if (Random().nextBoolean()) {
-                emitter.onSuccess("Bang!")
-            } else {
-                emitter.onComplete()
-            }
-        })
-                .toSingle("You're live")
-                .subscribeOn(AndroidSchedulers.mainThread())
-                .subscribe { word -> Log.i("fuck", word as String?) }
+    override fun initTask61() {
+//        io.reactivex.Single.
+    }
+
+    override fun initTask62() {
+
+    }
+
+    override fun initTask63() {
+        val d = Observable.just(getSearchByDate(0))
+                .subscribeOn(Schedulers.io())
+                .flatMap { it.toObservable() }
+                .flatMap { Observable.fromIterable(it.hits) }
+                .flatMap { getUser(it.author).toObservable() }
+                .toList()
+                .observeOn(AndroidSchedulers.mainThread())
+                .map {
+                    val iterator = it.iterator()
+                    while (iterator.hasNext()) {
+                        val item = iterator.next()
+                        if (item.karma < 3000) {
+                            iterator.remove()
+                        }
+                    }
+
+                    it
+                }
+                .subscribeWith(object : DisposableSingleObserver<Any>() {
+                    override fun onSuccess(o: Any) {
+                        Log.i("duck", "onSuccess")
+
+                        val list = o as List<UserResponse>
+                        list.forEach { Log.i("duck", it.about) }
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("duck", "onError")
+                    }
+                })
+
+        safeSubscribe(d)
+    }
+
+    override fun initTask7() {
+        val d = Observable.intervalRange(0, 11, 0, 1, TimeUnit.SECONDS)
+                .buffer(2)
+                .flatMap {
+                    Log.i("duck", it.toString())
+                    val counter = if (it.size == 1) {
+                        it[0]
+                    } else {
+                        it[0] + it[1]
+                    }
+                    getSearchByDate(counter.toInt()).toObservable()
+                }
+                .subscribe {
+                    Log.i("duck", it.page.toString())
+                }
+
+
+        safeSubscribe(d)
+    }
+
+    private fun safeSubscribe(disposable: Disposable) {
+        compositeDisposable.add(disposable)
     }
 
     private fun makeIntArray(): List<*> {
