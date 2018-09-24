@@ -31,14 +31,9 @@ class MainActivity : AppCompatActivity(), MainActivityView {
 
         if (InternetUtil.isInternetTurnOn(this)) {
 //            val javaClass = JavaClass()
-//            javaClass.initTask2()
-//            presenter.initTask1()
-//            presenter.initTask2()
-//            presenter.initTask3()
-//            presenter.initTask4()
-//            presenter.initTask5()
-//            presenter.initTask63()
-            presenter.initTask7()
+//            javaClass.initTask4()
+
+            presenter.initTask8()
         }
     }
 }

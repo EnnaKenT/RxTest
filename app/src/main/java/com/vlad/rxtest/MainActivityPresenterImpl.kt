@@ -1,5 +1,6 @@
 package com.vlad.rxtest
 
+import android.annotation.SuppressLint
 import android.support.annotation.NonNull
 import android.util.Log
 import com.vlad.rxtest.entity.response.Hit
@@ -13,9 +14,12 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.functions.BiFunction
+import io.reactivex.functions.Function
+import io.reactivex.observers.DisposableObserver
 import io.reactivex.observers.DisposableSingleObserver
 import io.reactivex.schedulers.Schedulers
 import java.util.*
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresenter {
@@ -210,14 +214,11 @@ class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresen
     override fun initTask7() {
         val d = Observable.intervalRange(0, 11, 0, 1, TimeUnit.SECONDS)
                 .buffer(2)
-                .flatMap {
-                    Log.i("duck", it.toString())
-                    val counter = if (it.size == 1) {
-                        it[0]
-                    } else {
-                        it[0] + it[1]
-                    }
-                    getSearchByDate(counter.toInt()).toObservable()
+                .flatMap { list ->
+                    Log.i("duck", list.toString())
+                    var counter = 0
+                    list.forEach { counter += it.toInt() }
+                    getSearchByDate(counter).toObservable()
                 }
                 .subscribe {
                     Log.i("duck", it.page.toString())
@@ -225,6 +226,53 @@ class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresen
 
 
         safeSubscribe(d)
+    }
+
+    @SuppressLint("CheckResult")
+    override fun initTask8() {
+        val executorService1 = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1)
+        val executorService2 = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1)
+        val executorService3 = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1)
+
+        Observable.just<Single<SearchByDate>>(getSearchByDate(0))
+                .subscribeOn(Schedulers.from(executorService1))
+                .flatMap { searchByDateObservable ->
+                    Log.i("duck", "1")
+                    Log.i("duck", Thread.currentThread().toString())
+                    searchByDateObservable.toObservable()
+                }
+                .observeOn(Schedulers.from(executorService2))
+                .flatMap(Function<SearchByDate, ObservableSource<SearchByDate>> { (hits, nbHits, page, nbPages, hitsPerPage, processingTimeMS, exhaustiveNbHits, query, params) ->
+                    Log.i("duck", "2")
+                    Log.i("duck", Thread.currentThread().toString())
+                    getSearchByDate(1).toObservable()
+                }, BiFunction<SearchByDate, SearchByDate, ArrayList<SearchByDate>> { searchByDate, searchByDate2 ->
+                    Log.i("duck", "3")
+                    Log.i("duck", Thread.currentThread().toString())
+
+                    val list = ArrayList<SearchByDate>()
+                    list.add(searchByDate)
+                    list.add(searchByDate2)
+                    list
+                })
+                .observeOn(Schedulers.from(executorService3))
+                .subscribe(object : DisposableObserver<ArrayList<SearchByDate>>() {
+                    override fun onNext(searchByDates: ArrayList<SearchByDate>) {
+                        Log.i("duck", "4")
+                        Log.i("duck", Thread.currentThread().toString())
+                        for ((_, _, page) in searchByDates) {
+                            Log.i("duck", page.toString() + " page")
+                        }
+                    }
+
+                    override fun onError(e: Throwable) {
+
+                    }
+
+                    override fun onComplete() {
+
+                    }
+                })
     }
 
     private fun safeSubscribe(disposable: Disposable) {

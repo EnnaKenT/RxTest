@@ -8,17 +8,16 @@ import com.vlad.rxtest.entity.response.UserResponse;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
 import io.reactivex.Single;
 import io.reactivex.SingleObserver;
-import io.reactivex.SingleSource;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Function;
+import io.reactivex.observers.DisposableObserver;
 import io.reactivex.schedulers.Schedulers;
 
 public class JavaClass {
@@ -178,6 +177,52 @@ public class JavaClass {
                     }
                 })
         ;
+    }
+
+    public void initTask4() {
+        Observable.just(getPage(0))
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Function<Single<SearchByDate>, ObservableSource<SearchByDate>>() {
+                    @Override
+                    public ObservableSource<SearchByDate> apply(Single<SearchByDate> searchByDateObservable) throws Exception {
+                        Log.i("duck", "1");
+                        return searchByDateObservable.toObservable();
+                    }
+                })
+                .flatMap(new Function<SearchByDate, ObservableSource<SearchByDate>>() {
+                    @Override
+                    public ObservableSource<SearchByDate> apply(SearchByDate searchByDate) throws Exception {
+                        Log.i("duck", "2");
+                        return getPage(1).toObservable();
+                    }
+                }, new BiFunction<SearchByDate, SearchByDate, ArrayList<SearchByDate>>() {
+                    @Override
+                    public ArrayList<SearchByDate> apply(SearchByDate searchByDate, SearchByDate searchByDate2) throws Exception {
+                        Log.i("duck", "3");
+                        ArrayList<SearchByDate> list = new ArrayList<>();
+                        list.add(searchByDate);
+                        list.add(searchByDate2);
+                        return list;
+                    }
+                })
+                .subscribe(new DisposableObserver<ArrayList<SearchByDate>>() {
+                    @Override
+                    public void onNext(ArrayList<SearchByDate> searchByDates) {
+                        for (SearchByDate searchByDate : searchByDates) {
+                            Log.i("duck", searchByDate.getPage() + " page");
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
     }
 
     private Single<SearchByDate> getPage(int page) {
