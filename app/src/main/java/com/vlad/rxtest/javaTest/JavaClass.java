@@ -1,22 +1,27 @@
 package com.vlad.rxtest.javaTest;
 
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.vlad.rxtest.entity.response.Hit;
+import com.vlad.rxtest.entity.response.NewModel;
 import com.vlad.rxtest.entity.response.SearchByDate;
 import com.vlad.rxtest.entity.response.UserResponse;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
+import io.reactivex.Observer;
 import io.reactivex.Single;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Function;
+import io.reactivex.functions.Predicate;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.schedulers.Schedulers;
 
@@ -221,6 +226,67 @@ public class JavaClass {
                     @Override
                     public void onComplete() {
 
+                    }
+                });
+    }
+
+    public void initTask5() {
+        Observable.intervalRange(0, 11, 0, 1, TimeUnit.SECONDS)
+                .subscribeWith(new Observer<Long>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(Long aLong) {
+
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+    }
+
+    public void initTask11() {
+        Observable.just(getPage(0))
+                .subscribeOn(Schedulers.io())
+                .flatMap((Function<Single<SearchByDate>, ObservableSource<SearchByDate>>) Single::toObservable)
+                .filter(searchByDate -> searchByDate.getHits().size() > 2)
+                .flatMap((Function<SearchByDate, ObservableSource<Hit>>) searchByDate -> Observable.just(searchByDate.getHits().get(2)))
+                .filter(hit -> !TextUtils.isEmpty(hit.getAuthor()) && !TextUtils.isEmpty(hit.getTitle()))
+                .flatMap((Function<Hit, Observable<UserResponse>>) hit -> {
+                    String authorName = hit.getAuthor();
+                    return getUser(authorName).toObservable();
+                }, (hit, userResponse) -> {
+                    String authorName = userResponse.getUsername();
+                    int karma = userResponse.getKarma();
+                    String storyTitle = hit.getTitle();
+
+                    return new NewModel(authorName, karma, storyTitle);
+                })
+                .subscribe(new DisposableObserver<NewModel>() {
+                    @Override
+                    public void onNext(NewModel newModel) {
+                        Log.i("duck", newModel.toString());
+
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.i("duck", "error: " + e);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        Log.i("duck", "onComplete");
                     }
                 });
     }
