@@ -1,11 +1,29 @@
 package com.vlad.rxtest
 
-import android.support.annotation.NonNull
-
 interface MainActivityPresenter {
 
-    fun initTask1()
-    fun initTask2()
+    fun initZip()
+    fun initMap()
+    fun initFlatMap()
+    fun initFlatMapBi()
+    fun initCreate()
+    fun initRange()
+    fun initInterval()
+    fun initTake()
+    fun initReduce()
+    fun initSkip()
+    fun initBufferAndFilter()
+    fun initTimer()
+    fun initFrom()
+    fun initFlatMapAndIterable()
+    fun initMerge()
+    fun initMergeFirst()
+    fun initConcat()
+    fun initPublishSubject()
+    fun initReplaySubject()
+    fun initBehaviorSubject()
+    fun initAsyncSubject()
+    fun initTask22()
     fun initTask3()
     fun initTask4()
     fun initTask5()
@@ -13,11 +31,10 @@ interface MainActivityPresenter {
     fun initTask62()
     fun initTask63()
     fun initTask7()
-    fun initTask8()
     fun initTask9()
     fun initTask10()
     fun initTask11()
     fun unbindView()
-    fun bindView(@NonNull mainActivity: MainActivity)
+    fun bindView(mainActivity: MainActivityView)
 
 }

@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity(), MainActivityView {
 //            val javaClass = JavaClass()
 //            javaClass.initTask11()
 
-            presenter.initTask63()
+            presenter.initMergeFirst()
         }
     }
 }

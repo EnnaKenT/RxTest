@@ -1,7 +1,6 @@
 package com.vlad.rxtest
 
 import android.annotation.SuppressLint
-import android.support.annotation.NonNull
 import android.util.Log
 import com.vlad.rxtest.entity.response.Hit
 import com.vlad.rxtest.entity.response.NewModel
@@ -18,22 +17,28 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.functions.BiFunction
-import io.reactivex.functions.Function
 import io.reactivex.observers.DisposableObserver
 import io.reactivex.observers.DisposableSingleObserver
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.BehaviorSubject
+import io.reactivex.subjects.PublishSubject
 import java.util.*
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import io.reactivex.subjects.ReplaySubject
+import io.reactivex.subjects.AsyncSubject
 
-class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresenter {
+
+
+
+
+
+class MainActivityPresenterImpl(var mView: MainActivityView) : MainActivityPresenter {
 
     private lateinit var searchRepository: SearchRepository
     private var compositeDisposable = CompositeDisposable()
 
-    override fun bindView(@NonNull mainActivity: MainActivity) {
-        view = mainActivity
+    override fun bindView(view: MainActivityView) {
+        mView = view
         searchRepository = SearchRepository(AlgoliaApiService.create())
     }
 
@@ -41,33 +46,283 @@ class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresen
         compositeDisposable.dispose()
     }
 
-    override fun initTask1() {
-        Single.zip(getSearchByDate(1), getSearchByDate(2), BiFunction<SearchByDate, SearchByDate, List<Hit>> { (hits), (hits2) ->
-            Log.i("duck", "BiFunction")
-            val list = ArrayList<Hit>()
-            list.addAll(hits)
-            list.addAll(hits2)
-            list
-        })
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(object : SingleObserver<List<Hit>> {
-                    override fun onSubscribe(d: Disposable) {
-                    }
-
-                    override fun onError(e: Throwable) {
-                    }
-
-                    override fun onSuccess(t: List<Hit>) {
-                        t.forEach {
-                            Log.i("duck", it.title)
-                        }
-                    }
-                })
+    override fun initMap() {
+        Observable.just(1, 2, 3)
+                .map { x -> 10 * x }
+                .subscribe { x ->
+                    Log.i("duck", "$x")
+                }
     }
 
-    override fun initTask2() {
+    override fun initFlatMap() {
+        val d = Observable.just("A", "B", "C")
+                .flatMap { letter ->
+                    Observable.just("$letter 1 ", "$letter 2 ", "$letter 3")
+                }
+                .subscribe { word ->
+                    Log.i("duck", word)
+                }
+
+        compositeDisposable.add(d)
+    }
+
+    override fun initFlatMapBi() {
+        val d = Observable.just("A", "B", "C")
+                .flatMap({ letter ->
+                    Observable.just(1, 2, 3)
+                }, { letter: String, num: Int ->
+                    "$letter $num"
+                })
+                .subscribe { result ->
+                    Log.i("duck", result)
+                }
+
+        compositeDisposable.add(d)
+    }
+
+    override fun initCreate() {
+        val values = Observable.create<String> { o ->
+            o.onNext("Hello")
+            o.onComplete()
+        }
+        val subscription = values.subscribe(
+                { v -> Log.i("duck", "onNext: $v") }, //onNext
+                { e -> Log.i("duck", "onError: $e") }, //onError
+                { Log.i("duck", "onCompete") } //onCompete
+        )
+
+        compositeDisposable.add(subscription)
+    }
+
+    override fun initRange() {
+        val d = Observable.range(0, 10)
+                .subscribe { Log.i("duck", "$it") }
+
+        compositeDisposable.add(d)
+    }
+
+    override fun initInterval() {
+        val d = Observable.interval(1, TimeUnit.SECONDS)
+                .filter {
+                    it < 11
+                }
+                .subscribe { Log.i("duck", "$it") }
+
+        compositeDisposable.add(d)
+    }
+
+    override fun initTake() {
+        val d = Observable.interval(1, TimeUnit.SECONDS)
+                .take(10)
+//                .takeUntil { it < 11 }
+                .subscribe { Log.i("duck", "$it") }
+
+        compositeDisposable.add(d)
+    }
+
+    override fun initReduce() {
+        val d = Observable.interval(1, TimeUnit.SECONDS)
+                .doOnSubscribe { Log.i("duck", "onSubscribe") }
+                .take(10)
+                .reduce { t1: Long, t2: Long -> t1 + t2 }
+                .subscribe { Log.i("duck", "$it") }
+
+        compositeDisposable.add(d)
+    }
+
+    override fun initSkip() {
+        val d = Observable.interval(1, TimeUnit.SECONDS)
+                .doOnSubscribe { Log.i("duck", "onSubscribe") }
+                .skip(2)
+                .take(10)
+                .subscribe { Log.i("duck", "$it") }
+
+        compositeDisposable.add(d)
+    }
+
+    override fun initBufferAndFilter() {
+        val d = Observable.interval(1, TimeUnit.SECONDS)
+                .filter {
+                    it < 11
+                }
+                .map {
+                    Log.i("duck", "interval $it")
+                    return@map it
+                }
+                .buffer(2)
+                .map { list ->
+                    var result: Long = 0
+                    list.forEach {
+                        result += it
+                    }
+                    return@map result
+                }
+                .subscribe { Log.i("duck", "onNext $it") }
+
+        compositeDisposable.add(d)
+    }
+
+    override fun initTimer() {
+        val d = Observable.timer(5, TimeUnit.SECONDS)
+                .doOnSubscribe { Log.i("duck", "onSubscribe") }
+                .subscribe(
+                        { v -> Log.i("duck", "onNext: $v") }, //onNext
+                        { e -> Log.i("duck", "onError: $e") }, //onError
+                        { Log.i("duck", "onCompete") } //onCompete
+                )
+        compositeDisposable.add(d)
+    }
+
+    override fun initFrom() {
+        val list = arrayListOf(1, 2, 3)
+        val d = Observable.fromIterable(list)
+                .doOnSubscribe { Log.i("duck", "onSubscribe") }
+                .subscribe(
+                        { v -> Log.i("duck", "onNext: $v") }, //onNext
+                        { e -> Log.i("duck", "onError: $e") }, //onError
+                        { Log.i("duck", "onCompete") } //onCompete
+                )
+        compositeDisposable.add(d)
+    }
+
+    override fun initFlatMapAndIterable() {
+        val d = Observable.just(0)
+                .doOnSubscribe { Log.i("duck", "onSubscribe") }
+                .flatMap { Observable.just(getSearchByDate(it)) }
+                .flatMap { it.toObservable() }
+                .flatMap { Observable.fromIterable(it.hits) }
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { Log.i("duck", "title ${it.title}") }
+    }
+
+    override fun initZip() {
+        val d = Observable.zip(
+                getSearchByDate(1).toObservable(),
+                getSearchByDate(2).toObservable(),
+                BiFunction<SearchByDate, SearchByDate, List<Hit>> { firstIn, secondIn ->
+                    Log.i("duck", "BiFunction")
+                    val listOut = mutableListOf<Hit>()
+                    listOut.addAll(firstIn.hits)
+                    listOut.addAll(secondIn.hits)
+                    listOut
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        { v ->
+                            //onNext
+                            v.forEach {
+                                Log.i("duck", "title ${it.title}")
+                            }
+                        },
+                        { e -> Log.i("duck", "onError: $e") }, //onError
+                        { Log.i("duck", "onCompete") } //onCompete
+                )
+
+        compositeDisposable.add(d)
+    }
+
+    override fun initMerge() {
+        val d = Observable.merge(
+                Observable.interval(1, TimeUnit.SECONDS)
+                        .map { id -> "A$id" }
+                        .take(5),
+                Observable.interval(1, TimeUnit.SECONDS)
+                        .map { id -> "B$id" }
+                        .take(5))
+                .subscribe { Log.i("duck", it) }
+
+        compositeDisposable.add(d)
+    }
+
+    override fun initMergeFirst() {
+        val d = Observable.merge(getSearchByDate(0).toObservable(),
+                getSearchByDate(1).toObservable(),
+                getSearchByDate(2).toObservable(),
+                getSearchByDate(3).toObservable())
+                .map { it.page }
+                .first(-1)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe { Log.i("duck", "onSubscribe") }
+                .doOnError { Log.i("duck", "onError") }
+                .subscribe { t1, _ -> Log.i("duck", "$t1") }
+
+        compositeDisposable.add(d)
+    }
+
+    override fun initConcat() {
+        val d = Observable.concat(
+                Observable.interval(1, TimeUnit.SECONDS)
+                        .map { id -> "A$id" }
+                        .take(5),
+                Observable.interval(1, TimeUnit.SECONDS)
+                        .map { id -> "B$id" }
+                        .take(5))
+                .subscribe { Log.i("duck", it) }
+
+        compositeDisposable.add(d)
+    }
+
+    override fun initPublishSubject() {
+        val source = PublishSubject.create<Int>()
+
+        source.subscribe(getFirstSubjectObserver())
+
+        source.onNext(1)
+        source.onNext(2)
+        source.onNext(3)
+
+        source.subscribe(getSecondSubjectObserver())
+
+        source.onNext(4)
+        source.onComplete()
+    }
+
+    override fun initReplaySubject() {
+        val source = ReplaySubject.create<Int>()
+
+        source.subscribe(getFirstSubjectObserver())
+        source.onNext(1)
+        source.onNext(2)
+        source.onNext(3)
+        source.onNext(4)
+        source.onComplete()
+
+        source.subscribe(getSecondSubjectObserver())
+    }
+
+    override fun initBehaviorSubject() {
+        val source = BehaviorSubject.create<Int>()
+
+        source.subscribe(getFirstSubjectObserver())
+        source.onNext(1)
+        source.onNext(2)
+        source.onNext(3)
+
+        source.subscribe(getSecondSubjectObserver())
+        source.onNext(4)
+        source.onComplete()
+    }
+
+    override fun initAsyncSubject() {
+        val source = AsyncSubject.create<Int>()
+
+        source.subscribe(getFirstSubjectObserver())
+        source.onNext(1)
+        source.onNext(2)
+        source.onNext(3)
+
+        source.subscribe(getSecondSubjectObserver())
+        source.onNext(4)
+        source.onComplete()
+    }
+
+    override fun initTask22() {
         Observable.just<Single<SearchByDate>>(getSearchByDate(0))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .flatMap { searchByDateSingle -> searchByDateSingle.toObservable() }
                 .flatMap { (hits) -> Observable.fromIterable(hits) }
@@ -75,9 +330,9 @@ class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresen
                     getUser(s).toObservable()
                 }
                 .toList()
-                .map { objects ->
+                .map {
                     val responsesList = ArrayList<UserResponse>()
-                    for (o in objects) {
+                    for (o in it) {
                         val userResponse = o as UserResponse
                         if (userResponse.karma > 3000) {
                             responsesList.add(userResponse)
@@ -273,43 +528,6 @@ class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresen
     }
 
     @SuppressLint("CheckResult")
-    override fun initTask8() {
-        val executorService1 = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1)
-        val executorService2 = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1)
-        val executorService3 = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1)
-
-        Observable.just<Single<SearchByDate>>(getSearchByDate(0))
-                .subscribeOn(Schedulers.from(executorService1))
-                .flatMap { searchByDateObservable ->
-                    Log.i("duck", "1")
-                    Log.i("duck", Thread.currentThread().toString())
-                    searchByDateObservable.toObservable()
-                }
-                .observeOn(Schedulers.from(executorService2))
-                .flatMap(Function<SearchByDate, ObservableSource<SearchByDate>> { (hits, nbHits, page, nbPages, hitsPerPage, processingTimeMS, exhaustiveNbHits, query, params) ->
-                    Log.i("duck", "2")
-                    Log.i("duck", Thread.currentThread().toString())
-                    getSearchByDate(1).toObservable()
-                }, BiFunction<SearchByDate, SearchByDate, ArrayList<SearchByDate>> { searchByDate, searchByDate2 ->
-                    Log.i("duck", "3")
-                    Log.i("duck", Thread.currentThread().toString())
-
-                    val list = ArrayList<SearchByDate>()
-                    list.add(searchByDate)
-                    list.add(searchByDate2)
-                    list
-                })
-                .observeOn(Schedulers.from(executorService3))
-                .subscribe { arrayList ->
-                    Log.i("duck", "4")
-                    Log.i("duck", Thread.currentThread().toString())
-                    arrayList.forEach {
-                        Log.i("duck", "${it.page} page")
-                    }
-                }
-    }
-
-    @SuppressLint("CheckResult")
     override fun initTask9() {
         Observable.intervalRange(0, 11, 0, 1, TimeUnit.SECONDS)
                 .subscribeOn(Schedulers.io())
@@ -353,7 +571,7 @@ class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresen
         source.onNext(2)
         source.onNext(3)
 
-        source.subscribe(getSubjectObserver())
+        source.subscribe(getFirstSubjectObserver())
 
         source.onNext(4)
         source.onNext(5)
@@ -362,9 +580,9 @@ class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresen
     }
 
     override fun initTask11() {
-        Observable.just<Single<SearchByDate>>(getSearchByDate(0))
+        Observable.just(getSearchByDate(0).toObservable())
                 .subscribeOn(Schedulers.io())
-                .flatMap { it.toObservable() }
+                .flatMap { it }
                 .filter { it.hits.size > 2 }
                 .flatMap { Observable.just(it.hits[2]) }
                 .filter { it.title.isNotEmpty() && it.author.isNotEmpty() }
@@ -390,23 +608,44 @@ class MainActivityPresenterImpl(var view: MainActivityView) : MainActivityPresen
 
     }
 
-    private fun getSubjectObserver(): Observer<Int> {
+    private fun getFirstSubjectObserver(): Observer<Int> {
         return object : Observer<Int> {
 
             override fun onSubscribe(d: Disposable) {
-                Log.d("duck", "onSubscribe : " + d.isDisposed)
+                Log.d("duck", "First onSubscribe : " + d.isDisposed)
             }
 
             override fun onNext(value: Int) {
-                Log.d("duck", "onNext value : $value")
+                Log.d("duck", "First onNext value : $value")
             }
 
             override fun onError(e: Throwable) {
-                Log.d("duck", " onError : " + e.message)
+                Log.d("duck", "First onError : " + e.message)
             }
 
             override fun onComplete() {
-                Log.d("duck", "onComplete")
+                Log.d("duck", "First onComplete")
+            }
+        }
+    }
+
+    private fun getSecondSubjectObserver(): Observer<Int> {
+        return object : Observer<Int> {
+
+            override fun onSubscribe(d: Disposable) {
+                Log.d("duck", "Second onSubscribe : " + d.isDisposed)
+            }
+
+            override fun onNext(value: Int) {
+                Log.d("duck", "Second onNext value : $value")
+            }
+
+            override fun onError(e: Throwable) {
+                Log.d("duck", "Second onError : " + e.message)
+            }
+
+            override fun onComplete() {
+                Log.d("duck", "Second onComplete")
             }
         }
     }
