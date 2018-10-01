@@ -20,16 +20,12 @@ import io.reactivex.functions.BiFunction
 import io.reactivex.observers.DisposableObserver
 import io.reactivex.observers.DisposableSingleObserver
 import io.reactivex.schedulers.Schedulers
+import io.reactivex.subjects.AsyncSubject
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
+import io.reactivex.subjects.ReplaySubject
 import java.util.*
 import java.util.concurrent.TimeUnit
-import io.reactivex.subjects.ReplaySubject
-import io.reactivex.subjects.AsyncSubject
-
-
-
-
 
 
 class MainActivityPresenterImpl(var mView: MainActivityView) : MainActivityPresenter {
@@ -44,6 +40,20 @@ class MainActivityPresenterImpl(var mView: MainActivityView) : MainActivityPrese
 
     override fun unbindView() {
         compositeDisposable.dispose()
+    }
+
+    override fun initCreate() {
+        val values = Observable.create<String> { o ->
+            o.onNext("Hello")
+            o.onComplete()
+        }
+        val subscription = values.subscribe(
+                { v -> Log.i("duck", "onNext: $v") }, //onNext
+                { e -> Log.i("duck", "onError: $e") }, //onError
+                { Log.i("duck", "onCompete") } //onCompete
+        )
+
+        compositeDisposable.add(subscription)
     }
 
     override fun initMap() {
@@ -78,20 +88,6 @@ class MainActivityPresenterImpl(var mView: MainActivityView) : MainActivityPrese
                 }
 
         compositeDisposable.add(d)
-    }
-
-    override fun initCreate() {
-        val values = Observable.create<String> { o ->
-            o.onNext("Hello")
-            o.onComplete()
-        }
-        val subscription = values.subscribe(
-                { v -> Log.i("duck", "onNext: $v") }, //onNext
-                { e -> Log.i("duck", "onError: $e") }, //onError
-                { Log.i("duck", "onCompete") } //onCompete
-        )
-
-        compositeDisposable.add(subscription)
     }
 
     override fun initRange() {
@@ -388,17 +384,18 @@ class MainActivityPresenterImpl(var mView: MainActivityView) : MainActivityPrese
                 })
     }
 
-    override fun initTask4() {
+    override fun initMaybe() {
         Maybe.create(MaybeOnSubscribe<Any> { emitter ->
-            if (Random().nextBoolean()) {
-                emitter.onSuccess("Bang!")
-            } else {
-                emitter.onComplete()
+            val random = Random().nextInt(3)
+            when (random) {
+                0 -> emitter.onSuccess("Bang!")
+                1 -> emitter.onComplete()
+                else -> emitter.onError(Error("random ==3, custom error"))
             }
         }).subscribeOn(AndroidSchedulers.mainThread())
                 .subscribe(object : MaybeObserver<Any> {
                     override fun onSubscribe(d: Disposable) {
-
+                        Log.i("duck", "onSubscribe")
                     }
 
                     override fun onSuccess(o: Any) {
@@ -415,10 +412,33 @@ class MainActivityPresenterImpl(var mView: MainActivityView) : MainActivityPrese
                 })
     }
 
-    override fun initTask5() {
+    override fun initCompletable() {
+        Completable.create { emitter ->
+            if (Random().nextBoolean()) {
+                emitter.onError(Error("Damnd, smth broke!"))
+            } else {
+                emitter.onComplete()
+            }
+        }
+                .subscribe(object : CompletableObserver {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("duck", "onSubscribe")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("duck", e.toString())
+                    }
+
+                    override fun onComplete() {
+                        Log.i("duck", "onComplete")
+                    }
+                })
+    }
+
+    override fun initMaybeToSingle() {
         Maybe.create(MaybeOnSubscribe<Any> { emitter ->
             if (Random().nextBoolean()) {
-                emitter.onSuccess("Bang!")
+                emitter.onSuccess("Hey!")
             } else {
                 emitter.onComplete()
             }
@@ -510,7 +530,7 @@ class MainActivityPresenterImpl(var mView: MainActivityView) : MainActivityPrese
         compositeDisposable.add(disposableFunction())
     }
 
-    override fun initTask7() {
+    override fun initIntervalRange() {
         val d = Observable.intervalRange(0, 10, 0, 1, TimeUnit.SECONDS)
                 .buffer(2)
                 .flatMap { list ->
