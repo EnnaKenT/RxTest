@@ -2,7 +2,7 @@ package com.vlad.rxtest
 
 interface MainActivityPresenter {
 
-    fun initCreate()
+    fun createObservable()
     fun initMap()
     fun initFlatMap()
     fun initFlatMapBi()
@@ -25,8 +25,8 @@ interface MainActivityPresenter {
     fun initAsyncSubject()
     fun initTask22()
     fun initTask3()
-    fun initMaybe()
-    fun initCompletable()
+    fun createMaybe()
+    fun createCompletable()
     fun initMaybeToSingle()
     fun initTask61()
     fun initTask62()

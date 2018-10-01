@@ -30,10 +30,7 @@ class MainActivity : AppCompatActivity(), MainActivityView {
         super.onResume()
 
         if (InternetUtil.isInternetTurnOn(this)) {
-//            val javaClass = JavaClass()
-//            javaClass.initTask11()
-
-            presenter.initMergeFirst()
+            presenter.createMaybe()
         }
     }
 }

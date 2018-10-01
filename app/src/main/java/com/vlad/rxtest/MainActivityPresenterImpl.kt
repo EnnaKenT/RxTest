@@ -42,7 +42,7 @@ class MainActivityPresenterImpl(var mView: MainActivityView) : MainActivityPrese
         compositeDisposable.dispose()
     }
 
-    override fun initCreate() {
+    override fun createObservable() {
         val values = Observable.create<String> { o ->
             o.onNext("Hello")
             o.onComplete()
@@ -54,6 +54,57 @@ class MainActivityPresenterImpl(var mView: MainActivityView) : MainActivityPrese
         )
 
         compositeDisposable.add(subscription)
+    }
+
+    override fun createMaybe() {
+        Maybe.create(MaybeOnSubscribe<Any> { emitter ->
+            val random = Random().nextInt(3)
+            when (random) {
+                0 -> emitter.onSuccess("Bang!")
+                1 -> emitter.onComplete()
+                else -> emitter.onError(Error("random ==3, custom error"))
+            }
+        }).subscribeOn(AndroidSchedulers.mainThread())
+                .subscribe(object : MaybeObserver<Any> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("duck", "onSubscribe")
+                    }
+
+                    override fun onSuccess(o: Any) {
+                        Log.i("duck", o as String)
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("duck", e.toString())
+                    }
+
+                    override fun onComplete() {
+                        Log.i("duck", "onComplete")
+                    }
+                })
+    }
+
+    override fun createCompletable() {
+        Completable.create { emitter ->
+            if (Random().nextBoolean()) {
+                emitter.onError(Error("Damn, smth broke!"))
+            } else {
+                emitter.onComplete()
+            }
+        }
+                .subscribe(object : CompletableObserver {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("duck", "onSubscribe")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("duck", e.toString())
+                    }
+
+                    override fun onComplete() {
+                        Log.i("duck", "onComplete")
+                    }
+                })
     }
 
     override fun initMap() {
@@ -182,14 +233,35 @@ class MainActivityPresenterImpl(var mView: MainActivityView) : MainActivityPrese
     }
 
     override fun initFlatMapAndIterable() {
-        val d = Observable.just(0)
-                .doOnSubscribe { Log.i("duck", "onSubscribe") }
-                .flatMap { Observable.just(getSearchByDate(it)) }
-                .flatMap { it.toObservable() }
-                .flatMap { Observable.fromIterable(it.hits) }
+        val d = Observable.just(2)
                 .subscribeOn(Schedulers.io())
+                .doOnSubscribe { Log.i("duck", "onSubscribe") }
+                .flatMap { getSearchByDate(it).toObservable() }
+//                .observeOn(AndroidSchedulers.mainThread())
+                .flatMap {
+//                    Log.i("duck", "inside .subscribeOn(Schedulers.io())")
+                    Log.i("duck", "inside .observeOn(AndroidSchedulers.mainThread())")
+                    Log.i("duck", "thread name ${Thread.currentThread().name}")
+                    Log.i("duck", "hits size ${it.hits.size}")
+                    Observable.fromIterable(it.hits)
+                }
+//                .observeOn(Schedulers.io())
+                .flatMap {
+//                    Log.i("duck", "inside .observeOn(Schedulers.io())")
+                    Log.i("duck", "thread name ${Thread.currentThread().name}")
+                    Log.i("duck", "author ${it.author}")
+                    Log.i("duck", "title ${it.title}")
+                    getUser(it.author).toObservable()
+                }
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe { Log.i("duck", "title ${it.title}") }
+                .subscribe {
+                    Log.i("duck", "inside .observeOn(AndroidSchedulers.mainThread())")
+                    Log.i("duck", "thread name ${Thread.currentThread().name}")
+                    Log.i("duck", "about ${it.about}")
+                    Log.i("duck", "created_at ${it.created_at}")
+                }
+
+        compositeDisposable.add(d)
     }
 
     override fun initZip() {
@@ -372,57 +444,6 @@ class MainActivityPresenterImpl(var mView: MainActivityView) : MainActivityPrese
 
                     override fun onSuccess(o: Any) {
                         Log.i("duck", o as String)
-                    }
-
-                    override fun onError(e: Throwable) {
-                        Log.i("duck", e.toString())
-                    }
-
-                    override fun onComplete() {
-                        Log.i("duck", "onComplete")
-                    }
-                })
-    }
-
-    override fun initMaybe() {
-        Maybe.create(MaybeOnSubscribe<Any> { emitter ->
-            val random = Random().nextInt(3)
-            when (random) {
-                0 -> emitter.onSuccess("Bang!")
-                1 -> emitter.onComplete()
-                else -> emitter.onError(Error("random ==3, custom error"))
-            }
-        }).subscribeOn(AndroidSchedulers.mainThread())
-                .subscribe(object : MaybeObserver<Any> {
-                    override fun onSubscribe(d: Disposable) {
-                        Log.i("duck", "onSubscribe")
-                    }
-
-                    override fun onSuccess(o: Any) {
-                        Log.i("duck", o as String)
-                    }
-
-                    override fun onError(e: Throwable) {
-                        Log.i("duck", e.toString())
-                    }
-
-                    override fun onComplete() {
-                        Log.i("duck", "onComplete")
-                    }
-                })
-    }
-
-    override fun initCompletable() {
-        Completable.create { emitter ->
-            if (Random().nextBoolean()) {
-                emitter.onError(Error("Damnd, smth broke!"))
-            } else {
-                emitter.onComplete()
-            }
-        }
-                .subscribe(object : CompletableObserver {
-                    override fun onSubscribe(d: Disposable) {
-                        Log.i("duck", "onSubscribe")
                     }
 
                     override fun onError(e: Throwable) {
